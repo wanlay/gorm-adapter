@@ -23,10 +23,9 @@ import (
 
 	"github.com/casbin/casbin/v2/model"
 	"github.com/casbin/casbin/v2/persist"
-	"github.com/glebarez/sqlite"
+	dm8 "github.com/wanlay/gorm-dm8"
+	_ "github.com/wanlay/gorm-dm8/dmr"
 	"gorm.io/driver/mysql"
-	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/plugin/dbresolver"
@@ -198,6 +197,9 @@ func NewAdapterByDBUseTableName(db *gorm.DB, prefix string, tableName string) (*
 
 	a.db = db.Scopes(a.casbinRuleTable()).Session(&gorm.Session{Context: db.Statement.Context})
 
+	if db.Migrator().HasTable(tableName) {
+		a.dropTable()
+	}
 	err := a.createTable()
 	if err != nil {
 		return nil, err
@@ -219,8 +221,7 @@ func InitDbResolver(dbArr []gorm.Dialector, dbNames []string) (DbPool, error) {
 	if e != nil {
 		panic(e.Error())
 	}
-	var p specificPolicy
-	p = 0
+	var p specificPolicy = 0
 	err := source.Use(dbresolver.Register(dbresolver.Config{Policy: &p, Sources: dbArr}))
 	dbMap := make(map[string]specificPolicy)
 	for i := 0; i < len(dbNames); i++ {
@@ -282,16 +283,14 @@ func NewAdapterByDBWithCustomTable(db *gorm.DB, t interface{}, tableName ...stri
 func openDBConnection(driverName, dataSourceName string) (*gorm.DB, error) {
 	var err error
 	var db *gorm.DB
-	if driverName == "postgres" {
-		db, err = gorm.Open(postgres.Open(dataSourceName), &gorm.Config{})
+	if driverName == "dmsql" || driverName == "dm" {
+		db, err = gorm.Open(dm8.Open(dataSourceName), &gorm.Config{
+			DisableForeignKeyConstraintWhenMigrating: true,
+		})
 	} else if driverName == "mysql" {
 		db, err = gorm.Open(mysql.Open(dataSourceName), &gorm.Config{})
-	} else if driverName == "sqlserver" {
-		db, err = gorm.Open(sqlserver.Open(dataSourceName), &gorm.Config{})
-	} else if driverName == "sqlite3" {
-		db, err = gorm.Open(sqlite.Open(dataSourceName), &gorm.Config{})
 	} else {
-		return nil, errors.New("Database dialect '" + driverName + "' is not supported. Supported databases are postgres, mysql and sqlserver")
+		return nil, errors.New("Database dialect '" + driverName + "' is not supported. Supported databases are dmsql and mysql")
 	}
 	if err != nil {
 		return nil, err
@@ -305,14 +304,14 @@ func (a *Adapter) createDatabase() error {
 	if err != nil {
 		return err
 	}
-	if a.driverName == "postgres" {
-		if err = db.Exec("CREATE DATABASE " + a.databaseName).Error; err != nil {
+	if a.driverName == "dmsql" || a.driverName == "dm" {
+		if err = db.Exec("CREATE SCHEMA " + a.databaseName).Error; err != nil {
 			// 42P04 is	duplicate_database
 			if strings.Contains(fmt.Sprintf("%s", err), "42P04") {
 				return nil
 			}
 		}
-	} else if a.driverName != "sqlite3" {
+	} else {
 		err = db.Exec("CREATE DATABASE IF NOT EXISTS " + a.databaseName).Error
 	}
 	if err != nil {
@@ -334,13 +333,8 @@ func (a *Adapter) Open() error {
 		if err = a.createDatabase(); err != nil {
 			return err
 		}
-		if a.driverName == "postgres" {
-			db, err = openDBConnection(a.driverName, a.dataSourceName+" dbname="+a.databaseName)
-		} else if a.driverName == "sqlite3" {
-			db, err = openDBConnection(a.driverName, a.dataSourceName)
-		} else {
-			db, err = openDBConnection(a.driverName, a.dataSourceName+a.databaseName)
-		}
+
+		db, err = openDBConnection(a.driverName, a.dataSourceName+a.databaseName)
 		if err != nil {
 			return err
 		}
@@ -396,12 +390,14 @@ func (a *Adapter) createTable() error {
 		return err
 	}
 
-	tableName := a.getFullTableName()
-	index := strings.ReplaceAll("idx_"+tableName, ".", "_")
-	hasIndex := a.db.Migrator().HasIndex(t, index)
-	if !hasIndex {
-		if err := a.db.Exec(fmt.Sprintf("CREATE UNIQUE INDEX %s ON %s (ptype,v0,v1,v2,v3,v4,v5,v6,v7)", index, tableName)).Error; err != nil {
-			return err
+	if !(a.driverName == "dmsql" || a.driverName == "dm") {
+		tableName := a.getFullTableName()
+		index := strings.ReplaceAll("idx_"+tableName, ".", "_")
+		hasIndex := a.db.Migrator().HasIndex(t, index)
+		if !hasIndex {
+			if err := a.db.Exec(fmt.Sprintf("CREATE UNIQUE INDEX %s ON %s (ptype,v0,v1,v2,v3,v4,v5,v6,v7)", index, tableName)).Error; err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -417,9 +413,6 @@ func (a *Adapter) dropTable() error {
 }
 
 func (a *Adapter) truncateTable() error {
-	if a.db.Config.Name() == sqlite.DriverName {
-		return a.db.Exec(fmt.Sprintf("delete from %s", a.getFullTableName())).Error
-	}
 	return a.db.Exec(fmt.Sprintf("truncate table %s", a.getFullTableName())).Error
 }
 

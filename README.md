@@ -5,15 +5,15 @@ Gorm Adapter
 > we fix it to `casbin_rule` after that.  
 > If you used v3.0.3 and less, and you want to update it,  
 > you might need to *migrate* data manually.
-> Find out more at: https://github.com/casbin/gorm-adapter/issues/78
+> Find out more at: https://github.com/wanlay/gorm-adapter/v3/issues/78
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/casbin/gorm-adapter)](https://goreportcard.com/report/github.com/casbin/gorm-adapter)
+[![Go Report Card](https://goreportcard.com/badge/github.com/wanlay/gorm-adapter/v3)](https://goreportcard.com/report/github.com/wanlay/gorm-adapter/v3)
 [![Build Status](https://travis-ci.com/casbin/gorm-adapter.svg?branch=master)](https://travis-ci.com/casbin/gorm-adapter)
 [![Coverage Status](https://coveralls.io/repos/github/casbin/gorm-adapter/badge.svg?branch=master)](https://coveralls.io/github/casbin/gorm-adapter?branch=master)
-[![Godoc](https://godoc.org/github.com/casbin/gorm-adapter?status.svg)](https://godoc.org/github.com/casbin/gorm-adapter)
-[![Release](https://img.shields.io/github/release/casbin/gorm-adapter.svg)](https://github.com/casbin/gorm-adapter/releases/latest)
+[![Godoc](https://godoc.org/github.com/wanlay/gorm-adapter/v3?status.svg)](https://godoc.org/github.com/wanlay/gorm-adapter/v3)
+[![Release](https://img.shields.io/github/release/casbin/gorm-adapter.svg)](https://github.com/wanlay/gorm-adapter/v3/releases/latest)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/casbin/lobby)
-[![Sourcegraph](https://sourcegraph.com/github.com/casbin/gorm-adapter/-/badge.svg)](https://sourcegraph.com/github.com/casbin/gorm-adapter?badge)
+[![Sourcegraph](https://sourcegraph.com/github.com/wanlay/gorm-adapter/v3/-/badge.svg)](https://sourcegraph.com/github.com/wanlay/gorm-adapter/v3?badge)
 
 Gorm Adapter is the [Gorm](https://gorm.io/gorm) adapter for [Casbin](https://github.com/casbin/casbin). With this library, Casbin can load policy from Gorm supported database or save policy to it.
 
@@ -29,7 +29,7 @@ Based on [Officially Supported Databases](https://v1.gorm.io/docs/connecting_to_
 
 ## Installation
 
-    go get github.com/casbin/gorm-adapter/v3
+    go get github.com/wanlay/gorm-adapter/v3
 
 ## Simple Example
 
@@ -38,7 +38,7 @@ package main
 
 import (
 	"github.com/casbin/casbin/v2"
-	gormadapter "github.com/casbin/gorm-adapter/v3"
+	gormadapter "github.com/wanlay/gorm-adapter/v3"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -78,7 +78,7 @@ db = TurnOffAutoMigrate(db)
 // a,_ := NewAdapterByDBUseTableName(...)
 a,_ := NewAdapterByDBWithCustomTable(...)
 ```
-Find out more details at [gorm-adapter#162](https://github.com/casbin/gorm-adapter/issues/162)
+Find out more details at [gorm-adapter#162](https://github.com/wanlay/gorm-adapter/v3/issues/162)
 ## Customize table columns example
 You can change the gorm struct tags, but the table structure must stay the same.
 ```go
@@ -86,7 +86,7 @@ package main
 
 import (
 	"github.com/casbin/casbin/v2"
-	gormadapter "github.com/casbin/gorm-adapter/v3"
+	gormadapter "github.com/wanlay/gorm-adapter/v3"
 	"gorm.io/gorm"
 )
 
