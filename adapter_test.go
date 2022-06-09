@@ -259,6 +259,24 @@ func initAdapterWithGormInstanceByPrefixAndName(t *testing.T, db *gorm.DB, prefi
 	return a
 }
 
+func TestNilField(t *testing.T) {
+	a, err := NewAdapter("dm", "dm://sysdba:SYSDBA@127.0.0.1:5236?autoCommit=true")
+	assert.Nil(t, err)
+
+	e, err := casbin.NewEnforcer("examples/rbac_model.conf", a)
+	assert.Nil(t, err)
+	e.EnableAutoSave(false)
+
+	ok, err := e.AddPolicy("", "data1", "write")
+	assert.Nil(t, err)
+	e.SavePolicy()
+	assert.Nil(t, e.LoadPolicy())
+
+	ok, err = e.Enforce("", "data1", "write")
+	assert.Nil(t, err)
+	assert.Equal(t, ok, true)
+}
+
 func testAutoSave(t *testing.T, a *Adapter) {
 
 	// NewEnforcer() will load the policy automatically.
@@ -353,17 +371,6 @@ func testUpdateFilteredPolicies(t *testing.T, a *Adapter) {
 }
 
 func TestAdapterWithCustomTable(t *testing.T) {
-	// db, err := gorm.Open(dm8.Open("dm://sysdba:SYSDBA@127.0.0.1:5236?autoCommit=true"), &gorm.Config{})
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// if err = db.Exec("CREATE SCHEMA casbin_custom_table").Error; err != nil {
-	// 	// 42P04 is	duplicate_database
-	// 	if !strings.Contains(fmt.Sprintf("%s", err), "42P04") {
-	// 		panic(err)
-	// 	}
-	// }
 
 	db, err := gorm.Open(dm8.Open("dm://sysdba:SYSDBA@127.0.0.1:5236?autoCommit=true"), &gorm.Config{})
 	if err != nil {
@@ -379,7 +386,7 @@ func TestAdapterWithCustomTable(t *testing.T) {
 }
 
 func TestAdapterWithoutAutoMigrate(t *testing.T) {
-	db, err := gorm.Open(mysql.Open("root:@tcp(127.0.0.1:3306)/casbin"), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open("root:root@tcp(127.0.0.1:3306)/casbin"), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
@@ -419,16 +426,16 @@ func TestAdapterWithoutAutoMigrate(t *testing.T) {
 
 func TestAdapterWithMulDb(t *testing.T) {
 	//create new database
-	NewAdapter("mysql", "root:@tcp(127.0.0.1:3306)/", "casbin")
-	NewAdapter("mysql", "root:@tcp(127.0.0.1:3306)/", "casbin2")
+	NewAdapter("mysql", "root:root@tcp(127.0.0.1:3306)/", "casbin")
+	NewAdapter("mysql", "root:root@tcp(127.0.0.1:3306)/", "casbin2")
 
 	testBasicFeatures(t)
 	testIndependenceBetweenMulDb(t)
 }
 
 func testIndependenceBetweenMulDb(t *testing.T) {
-	dsn := "root:@tcp(127.0.0.1:3306)/casbin"
-	dsn2 := "root:@tcp(127.0.0.1:3306)/casbin2"
+	dsn := "root:root@tcp(127.0.0.1:3306)/casbin"
+	dsn2 := "root:root@tcp(127.0.0.1:3306)/casbin2"
 
 	dbPool, err := InitDbResolver([]gorm.Dialector{mysql.Open(dsn), mysql.Open(dsn2)}, []string{"casbin", "casbin2"})
 
@@ -448,8 +455,8 @@ func testIndependenceBetweenMulDb(t *testing.T) {
 }
 
 func testBasicFeatures(t *testing.T) {
-	dsn := "root:@tcp(127.0.0.1:3306)/casbin"
-	dsn2 := "root:@tcp(127.0.0.1:3306)/casbin2"
+	dsn := "root:root@tcp(127.0.0.1:3306)/casbin"
+	dsn2 := "root:root@tcp(127.0.0.1:3306)/casbin2"
 
 	dbPool, err := InitDbResolver([]gorm.Dialector{mysql.Open(dsn), mysql.Open(dsn2)}, []string{"casbin", "casbin2"})
 
@@ -471,7 +478,7 @@ func testBasicFeatures(t *testing.T) {
 }
 
 func TestAdapters(t *testing.T) {
-	a := initAdapter(t, "mysql", "root:@tcp(127.0.0.1:3306)/", "casbin", "casbin_rule")
+	a := initAdapter(t, "mysql", "root:root@tcp(127.0.0.1:3306)/", "casbin", "casbin_rule")
 	testAutoSave(t, a)
 	testSaveLoad(t, a)
 
@@ -479,7 +486,7 @@ func TestAdapters(t *testing.T) {
 	testAutoSave(t, a)
 	testSaveLoad(t, a)
 
-	db, err := gorm.Open(mysql.Open("root:@tcp(127.0.0.1:3306)/casbin"), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open("root:root@tcp(127.0.0.1:3306)/casbin"), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
@@ -501,7 +508,7 @@ func TestAdapters(t *testing.T) {
 	a = initAdapterWithGormInstance(t, db)
 	testFilteredPolicy(t, a)
 
-	db, err = gorm.Open(mysql.Open("root:@tcp(127.0.0.1:3306)/casbin"), &gorm.Config{})
+	db, err = gorm.Open(mysql.Open("root:root@tcp(127.0.0.1:3306)/casbin"), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
@@ -530,12 +537,12 @@ func TestAdapters(t *testing.T) {
 	a = initAdapterWithGormInstanceByPrefixAndName(t, db, "casbin", "second")
 	testFilteredPolicy(t, a)
 
-	a = initAdapter(t, "mysql", "root:@tcp(127.0.0.1:3306)/", "casbin", "casbin_rule")
+	a = initAdapter(t, "mysql", "root:root@tcp(127.0.0.1:3306)/", "casbin", "casbin_rule")
 	testUpdatePolicy(t, a)
 	testUpdatePolicies(t, a)
 	testUpdateFilteredPolicies(t, a)
 
-	a = initAdapter(t, "mysql", "root:@tcp(127.0.0.1:3306)/", "casbin", "casbin_rule")
+	a = initAdapter(t, "mysql", "root:root@tcp(127.0.0.1:3306)/", "casbin", "casbin_rule")
 	a.AddLogger(logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), logger.Config{}))
 	testUpdatePolicy(t, a)
 	testUpdatePolicies(t, a)
@@ -556,7 +563,7 @@ func TestAdapters(t *testing.T) {
 
 func TestAddPolicies(t *testing.T) {
 	a := initAdapter(t, "dmsql", "dm://sysdba:SYSDBA@127.0.0.1:5236/casbin?autoCommit=true", "casbin", "casbin_rule")
-	// a := initAdapter(t, "mysql", "root:@tcp(127.0.0.1:3306)/", "casbin", "casbin_rule")
+	// a := initAdapter(t, "mysql", "root:root@tcp(127.0.0.1:3306)/", "casbin", "casbin_rule")
 	e, _ := casbin.NewEnforcer("examples/rbac_model.conf", a)
 	e.AddPolicies([][]string{{"jack", "data1", "read"}, {"jack2", "data1", "read"}})
 	e.LoadPolicy()
@@ -566,7 +573,7 @@ func TestAddPolicies(t *testing.T) {
 
 func TestAddPoliciesFullColumn(t *testing.T) {
 	a := initAdapter(t, "dmsql", "dm://sysdba:SYSDBA@127.0.0.1:5236?autoCommit=true", "casbin", "casbin_rule")
-	// a := initAdapter(t, "mysql", "root:@tcp(127.0.0.1:3306)/", "casbin", "casbin_rule")
+	// a := initAdapter(t, "mysql", "root:root@tcp(127.0.0.1:3306)/", "casbin", "casbin_rule")
 	e, _ := casbin.NewEnforcer("examples/rbac_model.conf", a)
 	e.AddPolicies([][]string{{"jack", "data1", "read", "col3", "col4", "col5", "col6", "col7"}, {"jack2", "data1", "read", "col3", "col4", "col5", "col6", "col7"}})
 	e.LoadPolicy()

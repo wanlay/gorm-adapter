@@ -197,12 +197,11 @@ func NewAdapterByDBUseTableName(db *gorm.DB, prefix string, tableName string) (*
 
 	a.db = db.Scopes(a.casbinRuleTable()).Session(&gorm.Session{Context: db.Statement.Context})
 
-	if db.Migrator().HasTable(tableName) {
-		a.dropTable()
-	}
-	err := a.createTable()
-	if err != nil {
-		return nil, err
+	if !db.Migrator().HasTable(tableName) {
+		err := a.createTable()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return a, nil
